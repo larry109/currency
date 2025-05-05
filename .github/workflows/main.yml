@@ -1,0 +1,60 @@
+name: Test SpotDL Playlist Download
+
+on:
+  workflow_dispatch:  # Pour lancer manuellement
+  schedule:
+    - cron: '0 0 * * 1'  # Exécution tous les lundis à minuit
+
+jobs:
+  download-playlist:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install FFmpeg
+        run: |
+          sudo apt update
+          sudo apt install -y ffmpeg
+      
+      - name: Install spotDL
+        run: |
+          pip install spotdl
+      
+      - name: Verify installation
+        run: |
+          spotdl --version
+          ffmpeg -version
+      
+      - name: Download playlist
+        run: |
+          mkdir -p downloads
+          cd downloads
+          spotdl download https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M
+      
+      - name: Test download success
+        run: |
+          cd downloads
+          # Vérifier si des fichiers MP3 ont été téléchargés
+          COUNT=$(find . -name "*.mp3" | wc -l)
+          echo "Nombre de fichiers téléchargés : $COUNT"
+          if [ $COUNT -gt 0 ]; then
+            echo "Test réussi : Des fichiers ont été téléchargés"
+            exit 0
+          else
+            echo "Test échoué : Aucun fichier n'a été téléchargé"
+            exit 1
+          fi
+      
+      - name: Upload artifacts (sample)
+        uses: actions/upload-artifact@v3
+        with:
+          name: downloaded-sample
+          path: downloads/*.mp3
+          retention-days: 1
